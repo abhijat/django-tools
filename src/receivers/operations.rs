@@ -1,5 +1,5 @@
-use std::{fs, io};
 use std::collections::BTreeMap;
+use std::{fs, io};
 
 use rayon::prelude::*;
 use regex::Regex;
@@ -7,28 +7,37 @@ use regex::Regex;
 use crate::paths::collect_source_files;
 use crate::receivers::structures::{Receiver, Stage};
 
-pub fn find_receivers_in_paths(paths: &Vec<&str>, subject: &str) -> io::Result<BTreeMap<Stage, Vec<Receiver>>> {
-    let paths = collect_source_files(paths, ".py")?;
-    let results = paths.par_iter().map(|path| {
-        match fs::read_to_string(path) {
+pub fn find_receivers_in_paths(
+    paths: &Vec<&str>,
+    subject: &str,
+) -> io::Result<BTreeMap<Stage, Vec<Receiver>>> {
+    let paths = collect_source_files(paths, ".py");
+    let results = paths
+        .par_iter()
+        .map(|path| match fs::read_to_string(path) {
             Ok(data) => Some(find_receivers_in_file_content(&data, subject, path)),
             Err(_) => None,
-        }
-    }).collect::<Vec<Option<Vec<Receiver>>>>();
+        })
+        .collect::<Vec<Option<Vec<Receiver>>>>();
 
-    let map = results.into_iter()
+    let map = results
+        .into_iter()
         .filter(|o| o.is_some())
         .map(|o| o.unwrap())
         .map(sort_receivers)
-        .fold(
-            BTreeMap::new(),
-            |acc, x| acc.into_iter().chain(x).collect(),
-        );
+        .fold(BTreeMap::new(), |acc, x| acc.into_iter().chain(x).collect());
     Ok(map)
 }
 
-pub fn find_receivers_in_file_content(data: &str, subject: &str, source_path: &str) -> Vec<Receiver> {
-    let pattern = format!(r"@receiver\((?P<stage>\w+)\s*,\s*sender=(?P<subject>{})", subject);
+pub fn find_receivers_in_file_content(
+    data: &str,
+    subject: &str,
+    source_path: &str,
+) -> Vec<Receiver> {
+    let pattern = format!(
+        r"@receiver\((?P<stage>\w+)\s*,\s*sender=(?P<subject>{})",
+        subject
+    );
     let expression = Regex::new(&pattern).unwrap();
     let def_expr = Regex::new(r"def (?P<func_name>\w+)\(").unwrap();
 
@@ -59,7 +68,8 @@ pub fn find_receivers_in_file_content(data: &str, subject: &str, source_path: &s
 fn sort_receivers(receivers: Vec<Receiver>) -> BTreeMap<Stage, Vec<Receiver>> {
     let mut stage_receivers: BTreeMap<Stage, Vec<Receiver>> = BTreeMap::new();
     for receiver in receivers {
-        stage_receivers.entry(receiver.stage)
+        stage_receivers
+            .entry(receiver.stage)
             .or_default()
             .push(receiver);
     }
@@ -101,11 +111,8 @@ mod tests {
 
     #[test]
     fn can_sort_receivers() {
-        let stage_receivers = sort_receivers(find_receivers_in_file_content(
-            DATA,
-            "Foo123_Ba",
-            "1",
-        ));
+        let stage_receivers =
+            sort_receivers(find_receivers_in_file_content(DATA, "Foo123_Ba", "1"));
         assert_eq!(3, stage_receivers.len());
         let (stage, receivers) = stage_receivers.iter().next().unwrap();
         assert_eq!(stage, &Stage::PreSave);

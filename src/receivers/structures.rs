@@ -42,3 +42,14 @@ impl ToString for Receiver {
         format!("{} [{}]", self.name, self.source_path)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_and_from_string() {
+        let stage = Stage::ManyToManyChanged;
+        assert_eq!(stage, Stage::from(&stage.to_string()));
+    }
+}

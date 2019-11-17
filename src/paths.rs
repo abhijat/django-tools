@@ -1,36 +1,62 @@
+use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
+use std::fs::DirEntry;
 use std::io;
+use std::io::Error;
 use std::path::Path;
 
-pub fn collect_source_files(paths: &Vec<&str>, extension: &str) -> io::Result<HashSet<String>> {
-    let mut collected = HashSet::new();
-
-    for path in paths {
-        if let Err(err) = collect_files_in_path(Path::new(path), extension, &mut collected) {
-            println!("failed to check {} due to error {}", path, err);
-        }
-    }
-
-    Ok(collected)
+fn lossy_name(entry: &DirEntry) -> String {
+    entry.path().to_string_lossy().to_string()
 }
 
-fn collect_files_in_path(dir: &Path, extension: &str, collected: &mut HashSet<String>) -> io::Result<()> {
+pub fn collect_source_files(paths: &Vec<&str>, extension: &str) -> HashSet<String> {
+    paths
+        .iter()
+        .map(|path| collect_files_in_path(Path::new(path), extension))
+        .filter_map(Result::ok)
+        .fold(HashSet::new(), |acc, x| acc.into_iter().chain(x).collect())
+}
+
+fn collect_files_in_path(dir: &Path, extension: &str) -> io::Result<HashSet<String>> {
+    let mut entries = HashSet::new();
+
     for entry in dir.read_dir()? {
         let entry = entry?;
         if entry.path().is_file() && entry.file_name().to_string_lossy().ends_with(extension) {
-            collected.insert(entry.path().to_string_lossy().to_string());
+            entries.insert(lossy_name(&entry));
         }
 
         if entry.path().is_dir() {
-            if let Err(err) = collect_files_in_path(&entry.path(), extension, collected) {
-                println!(
-                    "failed to collect files from path {} due to error {}",
-                    entry.path().to_string_lossy().to_string(),
-                    err
-                );
+            match collect_files_in_path(&entry.path(), extension) {
+                Ok(subpath_entries) => entries.extend(subpath_entries.into_iter()),
+                Err(err) => println!("error traversing subpath {}: {}", lossy_name(&entry), err),
             }
         }
     }
 
-    Ok(())
+    Ok(entries)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+
+    use super::*;
+
+    fn path() -> PathBuf {
+        PathBuf::from("test_data")
+    }
+
+    #[test]
+    fn can_find_files_of_extension() {
+        let files = collect_files_in_path(&path(), ".js").unwrap();
+        assert_eq!(1, files.len());
+
+        let files = collect_files_in_path(&path(), ".py").unwrap();
+        assert_eq!(2, files.len());
+
+        let files = collect_files_in_path(&path(), ".pbj").unwrap();
+        assert!(files.is_empty());
+    }
 }

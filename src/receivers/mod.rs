@@ -1,2 +1,2 @@
-pub mod structures;
 pub mod operations;
+pub mod structures;

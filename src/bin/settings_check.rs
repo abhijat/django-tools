@@ -4,11 +4,12 @@ use std::fs;
 use structopt::StructOpt;
 
 use project_checker as pc;
-use project_checker::{Opts, to_refs};
+use project_checker::{to_refs, Opts};
 
 fn main() {
     let opts: Opts = Opts::from_args();
-    let settings_path = &opts.settings_path
+    let settings_path = &opts
+        .settings_path
         .clone()
         .expect("Need settings path to check");
 
@@ -16,10 +17,7 @@ fn main() {
     let pred = |s: &str| s.chars().all(|chr| !chr.is_lowercase());
 
     let settings = pc::get_declarations_in_file_content(&data, Some(&pred));
-    let sources = pc::collect_source_files(
-        &to_refs(&opts.source_roots),
-        ".py"
-    ).unwrap();
+    let sources = pc::collect_source_files(&to_refs(&opts.source_roots), ".py");
 
     let mut found = HashSet::new();
 
