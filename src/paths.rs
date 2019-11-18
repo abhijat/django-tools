@@ -1,8 +1,6 @@
-use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 use std::fs::DirEntry;
 use std::io;
-use std::io::Error;
 use std::path::Path;
 
 fn lossy_name(entry: &DirEntry) -> String {

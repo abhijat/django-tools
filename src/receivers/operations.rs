@@ -44,11 +44,13 @@ pub fn find_receivers_in_file_content(
     let mut receivers = vec![];
     let mut peekable = data.lines().peekable();
     while let Some(line) = peekable.next() {
+        let line = line.trim();
         if let Some(captures) = expression.captures(line) {
             let stage = captures.name("stage");
             let subject = captures.name("subject");
 
             while let Some(line) = peekable.peek() {
+                let line = line.trim();
                 // Skip extra receiver decorators
                 if !line.starts_with("def") {
                     peekable.next();
@@ -57,7 +59,7 @@ pub fn find_receivers_in_file_content(
                 }
             }
 
-            let next_line = peekable.next().unwrap();
+            let next_line = peekable.next().unwrap_or("");
             if stage.is_some() && subject.is_some() && !next_line.is_empty() {
                 if let Some(captures) = def_expr.captures(next_line) {
                     let receiver = Receiver {
@@ -126,5 +128,17 @@ mod tests {
         let (stage, receivers) = stage_receivers.iter().next().unwrap();
         assert_eq!(stage, &Stage::PreSave);
         assert_eq!(1, receivers.len());
+    }
+
+    #[test]
+    fn multiple_receivers() {
+        let data = r#"
+        @receiver(pre_save, sender=Alpha)
+        @receiver(pre_save, sender=Brave)
+        def foobar()
+        "#;
+
+        let r = find_receivers_in_file_content(data, "Alpha", "1");
+        assert_eq!(1, r.len());
     }
 }
