@@ -2,8 +2,9 @@
 pub enum Stage {
     PreSave = 0,
     PostSave = 1,
-    PostDelete = 2,
-    ManyToManyChanged = 3,
+    PreDelete = 2,
+    PostDelete = 3,
+    ManyToManyChanged = 4,
 }
 
 impl ToString for Stage {
@@ -11,6 +12,7 @@ impl ToString for Stage {
         match self {
             Stage::PreSave => String::from("pre_save"),
             Stage::PostSave => String::from("post_save"),
+            Stage::PreDelete => String::from("pre_delete"),
             Stage::PostDelete => String::from("post_delete"),
             Stage::ManyToManyChanged => String::from("m2m_changed"),
         }
@@ -22,6 +24,7 @@ impl Stage {
         match s {
             "post_save" => Stage::PostSave,
             "pre_save" => Stage::PreSave,
+            "pre_delete" => Stage::PreDelete,
             "post_delete" => Stage::PostDelete,
             "m2m_changed" => Stage::ManyToManyChanged,
             _ => panic!("{} is not implemented yet!", s),

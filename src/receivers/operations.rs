@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use std::{fs, io};
+use std::collections::BTreeMap;
 
 use rayon::prelude::*;
 use regex::Regex;
@@ -47,8 +47,17 @@ pub fn find_receivers_in_file_content(
         if let Some(captures) = expression.captures(line) {
             let stage = captures.name("stage");
             let subject = captures.name("subject");
-            let next_line = peekable.peek().unwrap_or(&"");
 
+            while let Some(line) = peekable.peek() {
+                // Skip extra receiver decorators
+                if !line.starts_with("def") {
+                    peekable.next();
+                } else {
+                    break;
+                }
+            }
+
+            let next_line = peekable.next().unwrap();
             if stage.is_some() && subject.is_some() && !next_line.is_empty() {
                 if let Some(captures) = def_expr.captures(next_line) {
                     let receiver = Receiver {

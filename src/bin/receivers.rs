@@ -24,7 +24,7 @@ fn main() {
     for (stage, receivers) in &stage_receivers {
         println!("{}", stage.to_string());
         for receiver in receivers {
-            println!(" {}", receiver.to_string());
+            println!(" :: {}", receiver.to_string());
         }
     }
 }
