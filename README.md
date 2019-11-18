@@ -1,4 +1,4 @@
-# django-sanity
+# django-tools
 
 ![](https://github.com/abhijat/django-sanity/workflows/Rust/badge.svg)
 
